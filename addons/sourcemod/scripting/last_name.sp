@@ -6,7 +6,7 @@
 
 #define PLUGIN_NAME "LastNamePlayers"
 #define PLUGIN_AUTHOR "phenom"
-#define PLUGIN_VERSION "1.3.2"
+#define PLUGIN_VERSION "1.3.3"
 #define PLUGIN_URL "https://vk.com/jquerry"
 
 Database g_hDatabase;
@@ -45,7 +45,7 @@ public void OnSqlConnect(Database hDatabase, const char[] sError, any data)
 	g_hDatabase.Query(SQL_Callback_CheckError, "CREATE TABLE IF NOT EXISTS last_name (\
 													`id` int(11) NOT NULL ,\  
 													auth CHAR(34) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ,\  
-													nick CHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL ,\   
+													nick CHAR(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL UNIQUE ,\   
 													time INT(11) NOT NULL \
 													);");
 	SQL_UnlockDatabase(g_hDatabase); 
@@ -62,17 +62,17 @@ public void OnClientPostAdminCheck(int iClient)
 
     if(IsClientConnected(iClient) && !IsClientSourceTV(iClient) && !IsFakeClient(iClient))
     {
-		Format(buffer2, sizeof(buffer2), "SELECT id, auth, nick, time FROM `last_name` WHERE `nick` LIKE '%s' ORDER BY `time` DESC LIMIT 0,10", szName);
+		Format(buffer2, sizeof(buffer2), "SELECT id, auth, nick, time FROM last_name WHERE nick LIKE '%s';", szName);
 		DBResultSet query = SQL_Query(g_hDatabase, buffer2);
 
 		if(query != INVALID_HANDLE && SQL_FetchRow(query))
 		{
-			FormatEx(buffer, sizeof(buffer), "UPDATE `last_name` SET `time` = '%i', `auth` = '%s' WHERE `last_name`.`nick` = '%s'", GetTime(), szClientAuth, szName);
+			FormatEx(buffer, sizeof(buffer), "UPDATE last_name SET time = %i, auth = '%s' WHERE nick = '%s'", GetTime(), szClientAuth, szName);
 			g_hDatabase.Query(SQL_Callback_CheckError, buffer);
 		}
 		else
 		{
-			FormatEx(buffer, sizeof(buffer), "INSERT INTO `last_name` (`id`, `auth`, `nick`, `time`) VALUES (NULL, '%s', '%s', '%i');", szClientAuth, szName, GetTime());
+			FormatEx(buffer, sizeof(buffer), "INSERT INTO last_name (id, auth, nick, time) VALUES (NULL, '%s', '%s', %i);", szClientAuth, szName, GetTime());
 			g_hDatabase.Query(SQL_Callback_CheckError, buffer);
 		}
     }
@@ -87,7 +87,7 @@ public void OnClientDisconnect(int iClient)
 
 	if(!IsClientSourceTV(iClient) && !IsFakeClient(iClient))
 	{
-		FormatEx(buffer, sizeof(buffer), "UPDATE `last_name` SET `time` = '%i', `auth` = '%s' WHERE `last_name`.`nick` = '%s'", GetTime(), szClientAuth, szName);
+		FormatEx(buffer, sizeof(buffer), "UPDATE last_name SET time = %i, auth = '%s' WHERE nick = '%s'", GetTime(), szClientAuth, szName);
 		g_hDatabase.Query(SQL_Callback_CheckError, buffer);
 	}
 }
@@ -195,7 +195,7 @@ void LPN_ListPlayers(int iClient, int iTarget)
 	char szClientAuth[34], buffer2[512], buffer[512], szPlayerName[MAX_NAME_LENGTH], date[32];
 	int iTimePlayer;
 	GetClientAuthId(iTarget, AuthId_Steam2, szClientAuth, sizeof(szClientAuth));
-	Format(buffer2, sizeof(buffer2), "SELECT id, auth, nick, time FROM `last_name` WHERE `auth` LIKE '%s'", szClientAuth);
+	Format(buffer2, sizeof(buffer2), "SELECT id, auth, nick, time FROM last_name WHERE auth LIKE '%s'", szClientAuth);
 	DBResultSet query = SQL_Query(g_hDatabase, buffer2);
 
 	Handle hMenu = CreateMenu(Select_Panel, MenuAction_Cancel);
